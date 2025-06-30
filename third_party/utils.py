@@ -492,3 +492,36 @@ def create_masks(FLAGS, dev):
     else:
         raise NotImplementedError
     return mask
+
+# new
+def visualize_trajectories(pred, target, num_atoms=5, step=0):
+    """
+    Plots the predicted vs true trajectories for a batch of atoms.
+    
+    pred: [batch_size, num_atoms, pred_steps, dims]
+    target: same shape as pred
+    num_atoms: how many particles to plot
+    step: index into the batch to visualize
+    """
+    pred = pred.cpu().detach().numpy()
+    target = target.cpu().detach().numpy()
+    
+    pred_traj = pred[step]
+    target_traj = target[step]
+
+    plt.figure(figsize=(10, 6))
+    for i in range(num_atoms):
+        # Plot ground truth
+        plt.plot(target_traj[i, 0,], target_traj[i, 1],
+                 label=f'True Atom {i}', linestyle='--')
+        # Plot predictions
+        plt.plot(pred_traj[i, 0], pred_traj[i,1],
+                 label=f'Pred Atom {i}', linestyle='-')
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.title("Predicted vs True Trajectories")
+    plt.legend()
+    plt.grid(True)
+    # plt.show()
+    plt.savefig(f"trajectory_plot_batch_step{step}.png")
+    plt.close()

@@ -1,9 +1,10 @@
 import numpy as np
 import torch.utils.data as data
 import torch
-import cv2
+#import cv2
 
-root = './data/datasets/'
+root = './data/'
+
 
 def encode_onehot(labels):
     classes = set(labels)
@@ -132,7 +133,7 @@ class ChargedParticles(data.Dataset):
         suffix = '_charged'+str(self.n_objects)
         print('Charged Dataset')
         feat, edges, stats = self._load_data(suffix=suffix, split=split)
-        assert self.n_objects == feat.shape[1]
+        #assert self.n_objects == feat.shape[1]
         self.length = feat.shape[0]
         self.timesteps = args.num_timesteps
 
@@ -157,17 +158,17 @@ class ChargedParticles(data.Dataset):
         return self.length
 
     def _load_data(self, batch_size=1, suffix='', split='train'):
-        loc_train = np.load(root + 'loc_train' + suffix + '.npy')
-        vel_train = np.load(root + 'vel_train' + suffix + '.npy')
-        edges_train = np.load(root + 'edges_train' + suffix + '.npy')
+        loc_train = np.load(root + 'loc_train_charged3'+'.npy')
+        vel_train = np.load(root + 'vel_train_charged3' + '.npy')
+        edges_train = np.load(root + 'edges_train_charged3' + '.npy')
 
-        loc_valid = np.load(root + 'loc_valid' + suffix + '.npy')
-        vel_valid = np.load(root + 'vel_valid' + suffix + '.npy')
-        edges_valid = np.load(root + 'edges_valid' + suffix + '.npy')
+        loc_valid = np.load(root + 'loc_valid_charged3' + '.npy')
+        vel_valid = np.load(root + 'vel_valid_charged3' + '.npy')
+        edges_valid = np.load(root + 'edges_valid_charged3' + '.npy')
 
-        loc_test = np.load(root + 'loc_test' + suffix + '.npy')
-        vel_test = np.load(root + 'vel_test' + suffix + '.npy')
-        edges_test = np.load(root + 'edges_test' + suffix + '.npy')
+        loc_test = np.load(root + 'loc_test_charged3' + '.npy')
+        vel_test = np.load(root + 'vel_test_charged3' + '.npy')
+        edges_test = np.load(root + 'edges_test_charged3' + '.npy')
 
         # [num_samples, num_timesteps, num_dims, num_atoms]
         num_atoms = loc_train.shape[3]
@@ -340,3 +341,7 @@ class ChargedSpringsParticles(data.Dataset):
 
 if __name__ == "__main__":
     exit()
+#%%
+
+np.load(root + 'loc_train_charged5' + '.npy')
+#%%

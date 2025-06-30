@@ -54,7 +54,7 @@ class CNN(nn.Module):
 
 		self.conv1 = nn.Conv1d(n_in, n_hid, kernel_size=5, stride=1, padding=0)
 		self.bn1 = nn.BatchNorm1d(n_hid)
-		self.conv2 = nn.Conv1d(n_hid, n_hid, kernel_size=5, stride=1, padding=0)
+		self.conv2 = nn.Conv1d(n_hid, n_hid, kernel_size=3, stride=1, padding=0)
 		self.bn2 = nn.BatchNorm1d(n_hid)
 		self.conv_predict = nn.Conv1d(n_hid, n_out, kernel_size=1)
 		self.conv_attention = nn.Conv1d(n_hid, 1, kernel_size=1)

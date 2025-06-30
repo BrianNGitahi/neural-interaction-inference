@@ -9,19 +9,19 @@ parser.add_argument('--simulation', type=str, default='charged',
                     help='What simulation to generate.')
 parser.add_argument('--datadir', type=str, default='./datasets/',
                     help='Where to dave the data.')
-parser.add_argument('--num-train', type=int, default=50000,
+parser.add_argument('--num-train', type=int, default=2500,
                     help='Number of training simulations to generate.')
-parser.add_argument('--num-valid', type=int, default=10000,
+parser.add_argument('--num-valid', type=int, default=1000,
                     help='Number of validation simulations to generate.')
-parser.add_argument('--num-test', type=int, default=10000,
+parser.add_argument('--num-test', type=int, default=1000,
                     help='Number of test simulations to generate.')
-parser.add_argument('--length', type=int, default=10000,
+parser.add_argument('--length', type=int, default=800,
                     help='Length of trajectory.')
 parser.add_argument('--length-test', type=int, default=10000,
                     help='Length of test set trajectory.')
 parser.add_argument('--sample-freq', type=int, default=100,
                     help='How often to sample the trajectory.')
-parser.add_argument('--n-balls', type=int, default=5,
+parser.add_argument('--n-balls', type=int, default=3,
                     help='Number of balls in the simulation.')
 parser.add_argument('--seed', type=int, default=42,
                     help='Random seed.')
@@ -30,6 +30,7 @@ args = parser.parse_args()
 
 if args.simulation == 'springs':
     sim = SpringSim(noise_var=0.0, n_balls=args.n_balls)
+    suffix = '_springs'
 elif args.simulation == 'springs-medium':
     sim = SpringSim(noise_var=0.0, n_balls=args.n_balls,
                     interaction_strength=.5)
@@ -102,14 +103,14 @@ datadir = args.datadir
 
 print('Saving in: {}'.format(datadir + 'loc-vel_train-valid-test' + suffix + '.npy'))
 
-np.save(datadir + 'loc_train' + suffix + '.npy', loc_train)
-np.save(datadir + 'vel_train' + suffix + '.npy', vel_train)
-np.save(datadir + 'edges_train' + suffix + '.npy', edges_train)
+np.save('loc_train' + suffix + '.npy', loc_train)
+np.save('vel_train' + suffix + '.npy', vel_train)
+np.save('edges_train' + suffix + '.npy', edges_train)
 
-np.save(datadir + 'loc_valid' + suffix + '.npy', loc_valid)
-np.save(datadir + 'vel_valid' + suffix + '.npy', vel_valid)
-np.save(datadir + 'edges_valid' + suffix + '.npy', edges_valid)
+np.save('loc_valid' + suffix + '.npy', loc_valid)
+np.save('vel_valid' + suffix + '.npy', vel_valid)
+np.save('edges_valid' + suffix + '.npy', edges_valid)
 
-np.save(datadir + 'loc_test' + suffix + '.npy', loc_test)
-np.save(datadir + 'vel_test' + suffix + '.npy', vel_test)
-np.save(datadir + 'edges_test' + suffix + '.npy', edges_test)
+np.save('loc_test' + suffix + '.npy', loc_test)
+np.save('vel_test' + suffix + '.npy', vel_test)
+np.save('edges_test' + suffix + '.npy', edges_test)

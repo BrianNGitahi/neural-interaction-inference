@@ -1,3 +1,4 @@
+#%%
 import torch
 import time
 import numpy as np
@@ -19,7 +20,7 @@ import argparse
 from third_party.utils import get_trajectory_figure, \
     linear_annealing, \
     normalize_trajectories
-from third_party.utils import save_rel_matrices, get_model_grad_norm, get_model_grad_max
+from third_party.utils import save_rel_matrices, get_model_grad_norm, get_model_grad_max, visualize_trajectories
 import random
 
 homedir = '/data/Armand/EBM/'
@@ -29,6 +30,7 @@ np.random.seed(0)
 
 """Parse input arguments"""
 parser = argparse.ArgumentParser(description='Train EBM model')
+#%%
 
 # Data
 parser.add_argument('--dataset', default='charged', type=str, help='Dataset to use')
@@ -36,7 +38,7 @@ parser.add_argument('--new_dataset', default='', type=str, help='New Dataset to 
 parser.add_argument('--data_workers', default=4, type=int, help='Number of different data workers to load data in parallel')
 
 # Logging flags
-parser.add_argument('--logdir', default='/data/Armand/EBM/cachedir', type=str, help='location where log of experiments will be stored')
+parser.add_argument('--logdir', default='logs', type=str, help='location where log of experiments will be stored')
 parser.add_argument('--logname', default='', type=str, help='name of logs')
 parser.add_argument('--exp', default='', type=str, help='name of experiments')
 parser.add_argument('--log_interval', default=500, type=int, help='log outputs every so many batches')
@@ -357,7 +359,7 @@ def test_manipulate(train_dataloader, models, models_ema, FLAGS, step=0, save = 
         # mask = mask * 0
         # mask[rw_pair] = 1
 
-        if FLAGS.forecast is not -1:
+        if FLAGS.forecast != -1:
             feat_enc = feat[:, :, :-FLAGS.forecast]
         else: feat_enc = feat
         feat_enc = normalize_trajectories(feat_enc, augment=False, normalize=FLAGS.normalize_data_latent)
@@ -447,7 +449,7 @@ def test_manipulate(train_dataloader, models, models_ema, FLAGS, step=0, save = 
                     fig.savefig('temp.png', dpi=fig.dpi)
                     savedir = os.path.join('/',*(logger.log_dir.split('/')[:-3]),'results/new_constrain_2/')
                     inp = input('Next: n; or Save newconstrain plot with name: ')
-                    if inp is not 'n':
+                    if inp != 'n':
                         savedir_i = savedir + inp + '_new_constrain_'
                         if FLAGS.reference_point is not None:
                             np.save(savedir_i + 'reference_point.npy', np.array(reference_point))
@@ -460,7 +462,7 @@ def test_manipulate(train_dataloader, models, models_ema, FLAGS, step=0, save = 
                 else:
                     savedir = os.path.join('/',*(logger.log_dir.split('/')[:-3]),'results/pred_rec_examples/')
                     inp = input('Next: n; or Save generated sample with name: ')
-                    if inp is not 'n':
+                    if inp != 'n':
                         if FLAGS.pred_only:
                             savedir += inp + '_pred_'+FLAGS.dataset+'_'
                         else: savedir += inp + '_rec-pred_'+FLAGS.dataset+'_'
@@ -489,10 +491,10 @@ def test_manipulate(train_dataloader, models, models_ema, FLAGS, step=0, save = 
     exit()
 
 def test(train_dataloader, models, models_ema, FLAGS, step=0, save = False):
-    if FLAGS.cuda:
-        dev = torch.device("cuda")
-    else:
-        dev = torch.device("cpu")
+    # if FLAGS.cuda:
+    #     dev = torch.device("cuda")
+    # else:
+    dev = torch.device("cpu")
 
     mse_20, mse_10, mse_1 = [], [], []
     [model.eval() for model in models]
@@ -517,7 +519,7 @@ def test(train_dataloader, models, models_ema, FLAGS, step=0, save = False):
                 mask[torch.arange(0, bs), sel_edges+n] = 0
         else: raise NotImplementedError
 
-        if FLAGS.forecast is not -1:
+        if FLAGS.forecast != -1:
             feat_enc = feat[:, :, :-FLAGS.forecast]
         else: feat_enc = feat
 
@@ -550,7 +552,10 @@ def test(train_dataloader, models, models_ema, FLAGS, step=0, save = False):
 
         if not save:
             break
-
+        
+        
+    visualize_trajectories(feat_neg[:,:,-1],feat[:,:,-1],num_atoms=3,step=0)
+        
     print('Mean MSE for predicted timesteps save {}: {}/{}/{} '.format(int(save), sum(mse_1) / len(mse_1), sum(mse_10) / len(mse_10), sum(mse_20) / len(mse_20)))
     [model.train() for model in models]
 
@@ -566,12 +571,16 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
 
     [optimizer.zero_grad() for optimizer in optimizers]
 
-    dev = torch.device("cuda")
+    dev = torch.device("cpu")
+
+    print("started training")
 
     start_time = time.perf_counter()
     for epoch in range(FLAGS.num_epoch):
         print('Epoch {}\n'.format(epoch))
 
+        mse_losses_per_epoch = []
+        
         for (feat, edges), (rel_rec, rel_send), idx in train_dataloader:
             print(feat.shape)
 
@@ -580,7 +589,7 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
             feat = feat.to(dev)
 
             if it == FLAGS.resume_iter: [save_rel_matrices(model, rel_rec.to(dev), rel_send.to(dev)) for model in models]
-            if FLAGS.forecast is not -1:
+            if FLAGS.forecast != -1:
                 feat_enc = feat[:, :, :-FLAGS.forecast]
             else: feat_enc = feat
 
@@ -761,8 +770,32 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
                 print('Test at step %d done!' % it)
                 exp_name = logger.log_dir.split('/')
                 print('Experiment: ' + exp_name[-2] + '/' + exp_name[-1])
-
+                
             it += 1
+            
+        avg_epoch_mse = np.mean(l2_losses)
+        mse_losses_per_epoch.append(avg_epoch_mse)
+        l2_losses = []  # Reset for the next epoch
+        
+    # save
+    np.save('mse_losses_model2.npy', np.array(mse_losses_per_epoch))
+
+    # Plotting
+    import matplotlib.pyplot as plt
+
+    epochs = np.arange(1, len(mse_losses_per_epoch) + 1)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(epochs, mse_losses_per_epoch, label='Model 2 MSE')
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE Loss')
+    plt.title('MSE Loss Over Epochs (Model 2)')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('model2_mse_loss_curve.png', dpi=300)
+    plt.show()
+
 
 def main_single(rank, FLAGS):
     rank_idx = FLAGS.node_rank * FLAGS.gpus + rank
@@ -791,8 +824,8 @@ def main_single(rank, FLAGS):
 
     if world_size > 1:
         group = dist.init_process_group(backend='nccl', init_method='tcp://localhost:'+str(FLAGS.port), world_size=world_size, rank=rank_idx, group_name="default")
-    torch.cuda.set_device(rank)
-    device = torch.device('cuda')
+    #torch.cuda.set_device(rank)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     branch_folder = 'experiments_icml'
     if FLAGS.logname == 'debug':
@@ -827,7 +860,7 @@ def main_single(rank, FLAGS):
     FLAGS_OLD = FLAGS
 
     if FLAGS.resume_iter != 0:
-        if FLAGS.resume_name is not '':
+        if FLAGS.resume_name != '':
             logdir = osp.join(FLAGS.logdir, branch_folder, FLAGS.exp, FLAGS.resume_name)
         if FLAGS.resume_iter == -1:
             model_path = osp.join(logdir, "model_best.pth")
@@ -907,7 +940,7 @@ def main_single(rank, FLAGS):
         models = [model.eval() for model in models]
 
     if FLAGS.train:
-        train(train_dataloader, valid_dataloader, logger, models, models_ema, optimizers, schedulers, FLAGS, mask, logdir, rank_idx, replay_buffer)
+        train(train_dataloader, valid_dataloader, logger, models, models_ema, optimizers, schedulers, FLAGS, mask, logdir, rank_idx)
 
     elif FLAGS.test_manipulate:
         test_manipulate(test_manipulate_dataloader, models, models_ema, FLAGS, step=FLAGS.resume_iter, save=True, logger=logger)
@@ -938,4 +971,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+   main()
+
+
+
+

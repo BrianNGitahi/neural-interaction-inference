@@ -1010,7 +1010,10 @@ class CondResBlock1d(nn.Module):
 
         if self.downsample:
             x_out = swish(self.conv_downsample(x_out))
+            self.avg_pool = nn.AdaptiveAvgPool1d(output_size=max(1, x_out.shape[-1] // 2))
             x_out = self.avg_pool(x_out)
+            
+            
 
         return x_out
 
