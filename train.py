@@ -60,7 +60,7 @@ parser.add_argument('--cuda', default=True, action='store_true', help='whether t
 parser.add_argument('--port', default=6010, type=int, help='Port for distributed')
 parser.add_argument('--resume_iter', default=0, type=int, help='iteration to resume training')
 parser.add_argument('--resume_name', default='', type=str, help='name of the model to resume')
-parser.add_argument('--batch_size', default=64, type=int, help='size of batch of input to use')
+parser.add_argument('--batch_size', default=128, type=int, help='size of batch of input to use')
 parser.add_argument('--num_epoch', default=25, type=int, help='number of epochs of training to run')
 parser.add_argument('--lr', default=3e-4, type=float, help='learning rate for training')
 parser.add_argument('--forecast', default=-1, type=int, help='forecast N steps in the future (the encoder only sees the previous). -1 invalidates forecasting')
