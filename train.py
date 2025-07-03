@@ -22,6 +22,7 @@ from third_party.utils import get_trajectory_figure, \
     normalize_trajectories
 from third_party.utils import save_rel_matrices, get_model_grad_norm, get_model_grad_max, visualize_trajectories
 import random
+import matplotlib.pyplot as plt
 
 homedir = '/data/Armand/EBM/'
 torch.manual_seed(0)
@@ -60,7 +61,7 @@ parser.add_argument('--port', default=6010, type=int, help='Port for distributed
 parser.add_argument('--resume_iter', default=0, type=int, help='iteration to resume training')
 parser.add_argument('--resume_name', default='', type=str, help='name of the model to resume')
 parser.add_argument('--batch_size', default=64, type=int, help='size of batch of input to use')
-parser.add_argument('--num_epoch', default=500, type=int, help='number of epochs of training to run')
+parser.add_argument('--num_epoch', default=25, type=int, help='number of epochs of training to run')
 parser.add_argument('--lr', default=3e-4, type=float, help='learning rate for training')
 parser.add_argument('--forecast', default=-1, type=int, help='forecast N steps in the future (the encoder only sees the previous). -1 invalidates forecasting')
 parser.add_argument('--cd_and_ae', action='store_true', help='if set to True we use L2 loss and Contrastive Divergence')
@@ -544,11 +545,11 @@ def test(train_dataloader, models, models_ema, FLAGS, step=0, save = False):
         mse_20.append(F.mse_loss(feat_neg[:, :, -1],
                               feat[:, :,  -1]))
 
-        mse_10.append(F.mse_loss(feat_neg[:, :, -11],
-                              feat[:, :,  -11]))
+        mse_10.append(F.mse_loss(feat_neg[:, :, -4],
+                              feat[:, :,  -4]))
 
-        mse_1.append(F.mse_loss(feat_neg[:, :, -20],
-                                 feat[:, :,  -20]))
+        mse_1.append(F.mse_loss(feat_neg[:, :, -7],
+                                 feat[:, :,  -7]))
 
         if not save:
             break
@@ -567,6 +568,7 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
 
     it = FLAGS.resume_iter
     losses, l2_losses = [], []
+    # epoch_l2_losses = []
     best_model_loss = np.inf
 
     [optimizer.zero_grad() for optimizer in optimizers]
@@ -575,11 +577,12 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
 
     print("started training")
 
+    mse_losses_per_epoch = []
+    
     start_time = time.perf_counter()
     for epoch in range(FLAGS.num_epoch):
         print('Epoch {}\n'.format(epoch))
 
-        mse_losses_per_epoch = []
         
         for (feat, edges), (rel_rec, rel_send), idx in train_dataloader:
             print(feat.shape)
@@ -669,6 +672,7 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
 
             losses.append(loss.item())
             l2_losses.append(feat_loss.item())
+            # epoch_l2_losses.append(feat_loss.item())  # for true epoch tracking - NEW
             if it % FLAGS.log_interval == 0:
 
                 grad_norm = torch.norm(feat_grad)
@@ -781,15 +785,15 @@ def train(train_dataloader, test_dataloader, logger, models, models_ema, optimiz
     np.save('mse_losses_model2.npy', np.array(mse_losses_per_epoch))
 
     # Plotting
-    import matplotlib.pyplot as plt
+    
 
     epochs = np.arange(1, len(mse_losses_per_epoch) + 1)
 
     plt.figure(figsize=(8, 5))
-    plt.plot(epochs, mse_losses_per_epoch, label='Model 2 MSE')
+    plt.plot(epochs, mse_losses_per_epoch, label='NIIP')
     plt.xlabel('Epoch')
     plt.ylabel('MSE Loss')
-    plt.title('MSE Loss Over Epochs (Model 2)')
+    plt.title('NIIP Training Loss (MSE)')
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
@@ -974,5 +978,14 @@ if __name__ == "__main__":
    main()
 
 
+#%%
+mse_loss_ = np.load('mse_losses_model2.npy')
+epochs_ = np.arange(1, len(mse_loss_) + 1)
 
+plt.figure(figsize=(8, 5))
+plt.plot(epochs_, mse_loss_, label='Model 2 MSE')
 
+#%%
+mse_loss_.shape
+
+#%%
